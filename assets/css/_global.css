@@ -1,4 +1,30 @@
 body {
-  padding: 50px;
-  font-family: system-ui;
+
+}
+
+.container {
+  height: 100%;
+  display: grid;
+  grid-gap: 3px;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: 40px auto 40px;
+  grid-template-areas:
+    "h h h h h h h h h h h h"
+    "c c c c c c c c c c c c"
+    "f f f f f f f f f f f f";
+}
+
+.header {
+  grid-area: h;
+  background-color: red;
+}
+
+.content {
+  grid-area: c;
+  background-color: blue;
+}
+
+.footer {
+  grid-area: f;
+  background-color: pink;
 }
