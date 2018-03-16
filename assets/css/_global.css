@@ -38,4 +38,6 @@
   grid-area: f;
   padding: 2vh 2vw;
   background-color: #ffa64dff;
+  flex-direction: row;
+  justify-content: space-between;
 }
