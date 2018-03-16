@@ -1,13 +1,24 @@
-body {
 
+@font-face {
+  font-family: 'Circular';
+  src: url('../fonts/Circular/CircularStd-Book.eot');
+  src: url('../fonts/Circular/CircularStd-Book.woff2') format('woff2'),
+  url('../fonts/Circular/CircularStd-Book.woff') format('woff'),
+  url('../fonts/Circular/CircularStd-Book.ttf') format('truetype'),
+  url('../fonts/Circular/CircularStd-Book.svg#CircularStd-Book') format('svg'),
+  url('../fonts/Circular/CircularStd-Book.eot?#iefix')
+  format('embedded-opentype');
+  font-weight: normal;
+  font-style: normal;
 }
 
-.container {
+
+.wrapper {
   height: 100%;
   display: grid;
-  grid-gap: 3px;
+  /*grid-gap: 50px;*/
   grid-template-columns: repeat(12, 1fr);
-  grid-template-rows: 40px auto 40px;
+  grid-template-rows: auto auto auto;
   grid-template-areas:
     "h h h h h h h h h h h h"
     "c c c c c c c c c c c c"
@@ -16,15 +27,15 @@ body {
 
 .header {
   grid-area: h;
-  background-color: red;
 }
 
 .content {
   grid-area: c;
-  background-color: blue;
+  padding: 50px 100px;
 }
 
 .footer {
   grid-area: f;
-  background-color: pink;
+  padding: 2vh 2vw;
+  background-color: #ffa64dff;
 }

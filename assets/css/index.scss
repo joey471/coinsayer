@@ -1,2 +1,8 @@
 @import '_global.css';
-@import 'node_modules/bootstrap/scss/bootstrap.scss';
+//@import 'node_modules/bootstrap/scss/bootstrap.scss';
+
+// Variable overrides
+$font-family-base: 'Circular', sans-serif;
+
+// Bootstrap and its default variables
+@import "node_modules/bootstrap/scss/bootstrap";
