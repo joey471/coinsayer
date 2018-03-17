@@ -1,12 +1,17 @@
 <extends src='layout.html'>
   <block name='content'>
-    <h2>Hello World!</h2>
-    <p>Thanks for using <a href='https://github.com/static-dev/spike'>spike</a></p>
-    <p>Example of locals: {{ foo }}</p>
-    <p mdi> Example of **markdown**</p>
-    <p>Example of "smart quotes" -- and dashes</p>
-
-    <hr>
+    <h2>What is coin selection?</h2>
+    <p>
+      When you send bitcoin, you must chose exactly which "inputs" to use. This has a profound effect on privacy and overall costs.
+      And the amount of possible choices grows exponential with the amount of "coins" you have!
+    </p>
+    <p>
+      In fact, this problem is so hard that it is categorized as <a href="https://en.wikipedia.org/wiki/NP-hardness" target="_blank">NP-hard</a>,
+      and in the general-case not really solvable.
+      However, at coinsayer we have developed state of the art algorithms,
+      using state of the art solvers on our server farm to solve this problem as efficiently as possible —
+      resulting in huge amounts of cost and privacy savings over previous coin selection algorithms.
+    </p>
 
   </block>
 </extends>

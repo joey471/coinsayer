@@ -9,9 +9,7 @@ module.exports = {
   ignore: ['**/layout.html', '**/_*', '**/.*', 'readme.md', 'yarn.lock', 'package-lock.json'],
   matchers: { css: '*(**/)*.scss' },
   module: {
-    rules: [
-      { test: /\.scss/, use: [{ loader: 'sass-loader' }] }
-    ]
+    rules: [{ test: /\.scss/, use: [{ loader: 'sass-loader' }] }]
   },
   reshape: htmlStandards({
     locals: (ctx) => { return { pageId: pageId(ctx), foo: 'bar' } },
