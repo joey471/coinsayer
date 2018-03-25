@@ -84,3 +84,8 @@
 .selling-points img {
   align-self: center;
 }
+
+.action-buttons {
+  display: flex;
+  justify-content: space-around;
+}
