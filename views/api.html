@@ -1,217 +1,225 @@
 <extends src='layout.html'>
   <block name='content'>
-    <h2>API Docs</h2>
-    <p>
-      The input to coin selection is a json problem object. Please reference our <a href="/problem.json">sample problem</a> for a concrete example.
-    </p>
-    <h3>Problem</h3>
-    <table class="table table-striped table-bordered">
-      <thead>
-      <tr>
-        <th scope="col">Field</th>
-        <th scope="col">Type</th>
-        <th scope="col">Description</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr>
-        <td>minFeeRate</td>
-        <td>float</td>
-        <td>This is expressed in <strong>satoshis per weight</strong> of the minimium
-          feerate that would be considered acceptable for a transaction. Occasionally
-          the coin selection will create a transaction that pays a little more (when it is optimal to do so), but it'll never be below this. Note: bitcoind returns fee estimations in bitcoin per 1000 virtual bytes. So to convert to satoshis per weight, multiply by 1e8 (satoshis in a bitcoin) and then divide by 4000 (weight in a virtual 1000 bytes). Also note, that <em>if you are not using an integer</em> rounding errors <em>will</em> occur.  Internally the coin selector uses mixed integer optimization techniques that require rounding to an integer on a per-input and per-output basis. So each input used will require round(minFeeRate * input.weight) of fees, and each output will require round(minFeeRate * output.weight) of fees. This could conceivably add up to a signifciant amount of rounding for a transaction.
-        </td>
-      </tr>
-      <tr>
-        <td>consolidationFeeRate</td>
-        <td>integer</td>
-        <td>
-          This is expressed in  <strong>satoshis per weight</strong>. This represents what fee rate you expect you will create "consolidation" (clean up) transactions. If you never consolidate, you should use the same number as "minFeeRate". If you consolidate daily, a good idea would be to use fee estimation for "144" confs (1 day). For the coin selection to do a good job, it's important this value accurately represents your consolidation behavior!
-        </td>
-      </tr>
-      <tr>
-        <td>fixedWeight</td>
-        <td>integer</td>
-        <td>This the constant overhead costs (measured in weight) of creating a transaction. In bitcoin this is 48 for segwit transactions, and 40 for legacy transactions (?)</td>
-      </tr>
-      <tr>
-        <td>changeWeight</td>
-        <td>integer</td>
-        <td>
-          This represents how much weight it would add to your transaction to create a change output. Different output types have different amount of weight, so depending what you use for change this will vary. (see below table for weight costs of different types of bitcoin outputs)
-        </td>
-      </tr>
-      <tr>
-        <td>changeSpendWeight</td>
-        <td>integer</td>
-        <td>
-          This represents how much weight it would add to a transaction to spend the created change of this transaction. (see below table for weight costs of different types of bitcoin inputs)
-        </td>
-      </tr>
-      <tr>
-        <td>minAbsoluteFee</td>
-        <td>integer</td>
-        <td>
-          This represents the absolute min amount of satoshis you would like the transaction fees to be. Almost always this should be 0, but if you're doing transaction replacement you might want to set this to force it to spend a certain min absolute amount.
-        </td>
-      </tr>
-      <tr>
-        <td>maxInputsToSelect</td>
-        <td>integer</td>
-        <td>
-          What is the absolute most amount of inputs you are willing to source in the transaction? Keeping this number low helps create fast coin selection. If you are a service you generally want to avoid degenerate cases where the only way a transaction can be created is by sweeping up your entire wallet and costing you thousands of dollars in fees. For most payments, a sane recommendation is around 3.
-        </td>
-      </tr>
-      <tr>
-        <td>minChangeAmount</td>
-        <td>integer</td>
-        <td>
-          <i>if</i> it creates change, what is the min amount you want it to be. This value should be higher than the "dust threshold" that bitcoin uses, or your transactions won't even propogate. But in general, I would aim at something like 100000. If you want great privacy properties of your change output, using a min change of 75% of the amount you are sending is fantastic! (although you probably only want to bother if you're sending a non-round amount)
-        </td>
-      </tr>
-      <tr>
-        <td>timeout</td>
-        <td>integer</td>
-        <td>The max amount of <strong>seconds</strong> you want the coin selection to run. After this time, it will stop the search and return the best result it found. For the vast majority of problems coin selection should be done in under 100ms, so it should not matter. But for real time problems, 5 makes for a sane setting. If you're doing non-realtime batches, using something like 30 seconds makes sense so that it can really fully search a complex space</td>
-      </tr>
-      <tr>
-        <td>mandatoryInputConflicts</td>
-        <td>array of (array of strings)</td>
-        <td>This is only needed for doing transaction replacement. If you are not, just use an empty array. Each element in the mandatoryInputConflicts array is a "conflictSet" which is an array of identifiers. Each conflictSet is "at least one of these inputs must be conflicted with". And all conflictSets must be satisfied. This is designed to allow you to create powerful transaction replacements that conflict with other transactions (so you don't need to worry about multiple confirming)
-        </td>
-      </tr>
-      <tr>
-        <td>inputs</td>
-        <td>array of Input's</td>
-        <td>
-          A list of all possible inputs to pick. Each input has three mandatory fields:
-          "identifier", "weight" and "amount". The identifier is a string that uniquely identifies that input. Weight is how much it would cost (in weight) to spend that input. Amount is in satoshis. There is an optional field "confirmations" which says how deeply confirmed the transaction is. This is more or less ignored and you are free to skip it. But the coin selection will use "confirmation" count to break ties (preferring old inputs, under the assumption that it is old becausse it wasn't as useful to spend earlier)
-        </td>
-      </tr>
-      <tr>
-        <td>outputs</td>
-        <td>array of Output's</td>
-        <td>
-          A list of all outputs the transaction can or should have. Each Output has four fields: identifier, weight, amount, requirement. "identifier" is a string that uniquely identifies the output. "weight" says how much weight it would add to the transaction to send to that output. "amount" is the amount needed to be sent. "requirement" is says if the transaction must send to this output or not. There are three options: "M" for Mandatory (basically don't create the transaction unless it has this output). "P" for preferred (try include this output, but it's not essential) or "O" for optional. Which means it'll only include this output it it can improve the coin selection. So for instance in batching sends, you might not have a hard requirement to include of them, which can often drastically improve coin selection. When creating a batch transaction it for instance might make sense to make sends < X hours ago "optional", and if they're older than that "preferred" and finally if it's essential they be sent, make them "mandatory".
-        </td>
-      </tr>
-      </tbody>
-    </table>
-    <p>
-      The result of solving a problem, is a <i>selection</i>. For the sample problem, the selection you should get is:
-    </p>
-    <pre>{"inputs":["dl_155"],"outputs":["wl_158"],"changeAmount":0,"optimal":true,"weight":776,"miningFee":68320,"miningSacrifice":10120}</pre>
-
-    <h3>Selection</h3>
-    <table class="table table-striped table-bordered">
-      <thead>
-      <th scope="col">Field</th>
-      <th scope="col">Type</th>
-      <th scope="col">Description</th>
-      </thead>
-      <tbody>
-      <tr>
-        <td>inputs</td>
-        <td>array of strings</td>
-        <td>This is an array of input identifiers that have been chosen</td>
-      </tr>
-      <tr>
-        <td>outputs</td>
-        <td>array of strings</td>
-        <td>This is an array of output identifiers that have been chosen. Note: this includes both mandatory and the optional ones that have been picked</td>
-      </tr>
-      <tr>
-        <td>changeAmount</td>
-        <td>integer</td>
-        <td>
-          If this is 0, it means do not create change. If it is > 0, it says how much the change output should be for (in satoshis).
-        </td>
-      </tr>
-      <tr>
-        <td>optimal</td>
-        <td>boolean</td>
-        <td>This says if the coin selection was able to find it's optimal selection, or it was timed out and gave it's best approximation it found</td>
-      </tr>
-      <tr>
-        <td>weight</td>
-        <td>integer</td>
-        <td>How much weight the created transaction should have.  This is strictly derived data, and you should never need this field, but you can use for debugging or what not</td>
-      </tr>
-      <tr>
-        <td>miningFee</td>
-        <td>integer</td>
-        <td>How much mining fee the transaction will have. This is strictly derived data, and you should never need this field, but you can use for debugging or what not</td>
-      </tr>
-      <tr>
-        <td>miningSacrifice</td>
-        <td>integer</td>
-        <td>How much fees above what is strictly required (minFeeRate) has been "sacrificed" in order to avoid creating a change output.  This is strictly derived data, and you should never need this field, but you can use for debugging or what not</td>
-      </tr>
-      </tbody>
-    </table>
-    <h3>Inputs and Outputs</h3>
-<p>
-  coinsayer's coin selection is flexible enough to work with any bitcoin-like cryptocurrency, so things like weight are not hardcoded. However as it's main use is for bitcoin, here is a guide to how much different input and output types add to a transaction:
-</p>
-    <h4>bitcoin input weights</h4>
-    <table class="table table-striped table-bordered">
-      <thead>
-      <tr>
-        <th scope="col">Type</th>
-        <th scope="col">Weight</th>
-        <th scope="col">Description</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr>
-        <td>P2PKH</td>
-        <td>592</td>
-        <td>Due to ecdsa encoding this can occasionally be few bytes shorter</td>
-      </tr>
-      <tr>
-        <td>P2SH</td>
-        <td>???</td>
-        <td>It will depend on the exact type of script used</td>
-      </tr>
-      <tr>
-        <td>P2SH-P2WPKH</td>
-        <td>368</td>
-        <td>This is the segwit that is wrapped by p2sh</td>
-      </tr>
-      <tr>
-        <td>P2WPKH</td>
-        <td>?</td>
-        <td>TODO: ???</td>
-      </tr>
-      </tbody>
-    </table>
-
-    <h4>bitcoin output weights</h4>
-    <table class="table table-striped table-bordered">
-      <thead>
-      <tr>
-        <th scope="col">Type</th>
-        <th scope="col">Weight</th>
-        <th scope="col">Description</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr>
-        <td>P2SH</td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td>P2PK</td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td>P2WPKH</td>
-        <td></td>
-        <td></td>
-      </tr>
-      </tbody>
-    </table>
+    <div class="section">
+      <h2>API Docs</h2>
+      <p>
+        The input to coin selection is a json problem object. Please reference our <a href="/problem.json">sample problem</a> for a concrete example.
+      </p>
+      <h3>Problem</h3>
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+          <thead>
+          <tr>
+            <th scope="col">Field</th>
+            <th scope="col">Type</th>
+            <th scope="col">Description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>minFeeRate</td>
+            <td>float</td>
+            <td>This is expressed in <strong>satoshis per weight</strong> of the minimium
+              feerate that would be considered acceptable for a transaction. Occasionally
+              the coin selection will create a transaction that pays a little more (when it is optimal to do so), but it'll never be below this. Note: bitcoind returns fee estimations in bitcoin per 1000 virtual bytes. So to convert to satoshis per weight, multiply by 1e8 (satoshis in a bitcoin) and then divide by 4000 (weight in a virtual 1000 bytes). Also note, that <em>if you are not using an integer</em> rounding errors <em>will</em> occur.  Internally the coin selector uses mixed integer optimization techniques that require rounding to an integer on a per-input and per-output basis. So each input used will require round(minFeeRate * input.weight) of fees, and each output will require round(minFeeRate * output.weight) of fees. This could conceivably add up to a signifciant amount of rounding for a transaction.
+            </td>
+          </tr>
+          <tr>
+            <td>consolidationFeeRate</td>
+            <td>integer</td>
+            <td>
+              This is expressed in  <strong>satoshis per weight</strong>. This represents what fee rate you expect you will create "consolidation" (clean up) transactions. If you never consolidate, you should use the same number as "minFeeRate". If you consolidate daily, a good idea would be to use fee estimation for "144" confs (1 day). For the coin selection to do a good job, it's important this value accurately represents your consolidation behavior!
+            </td>
+          </tr>
+          <tr>
+            <td>fixedWeight</td>
+            <td>integer</td>
+            <td>This the constant overhead costs (measured in weight) of creating a transaction. In bitcoin this is 48 for segwit transactions, and 40 for legacy transactions (?)</td>
+          </tr>
+          <tr>
+            <td>changeWeight</td>
+            <td>integer</td>
+            <td>
+              This represents how much weight it would add to your transaction to create a change output. Different output types have different amount of weight, so depending what you use for change this will vary. (see below table for weight costs of different types of bitcoin outputs)
+            </td>
+          </tr>
+          <tr>
+            <td>changeSpendWeight</td>
+            <td>integer</td>
+            <td>
+              This represents how much weight it would add to a transaction to spend the created change of this transaction. (see below table for weight costs of different types of bitcoin inputs)
+            </td>
+          </tr>
+          <tr>
+            <td>minAbsoluteFee</td>
+            <td>integer</td>
+            <td>
+              This represents the absolute min amount of satoshis you would like the transaction fees to be. Almost always this should be 0, but if you're doing transaction replacement you might want to set this to force it to spend a certain min absolute amount.
+            </td>
+          </tr>
+          <tr>
+            <td>maxInputsToSelect</td>
+            <td>integer</td>
+            <td>
+              What is the absolute most amount of inputs you are willing to source in the transaction? Keeping this number low helps create fast coin selection. If you are a service you generally want to avoid degenerate cases where the only way a transaction can be created is by sweeping up your entire wallet and costing you thousands of dollars in fees. For most payments, a sane recommendation is around 3.
+            </td>
+          </tr>
+          <tr>
+            <td>minChangeAmount</td>
+            <td>integer</td>
+            <td>
+              <i>if</i> it creates change, what is the min amount you want it to be. This value should be higher than the "dust threshold" that bitcoin uses, or your transactions won't even propogate. But in general, I would aim at something like 100000. If you want great privacy properties of your change output, using a min change of 75% of the amount you are sending is fantastic! (although you probably only want to bother if you're sending a non-round amount)
+            </td>
+          </tr>
+          <tr>
+            <td>timeout</td>
+            <td>integer</td>
+            <td>The max amount of <strong>seconds</strong> you want the coin selection to run. After this time, it will stop the search and return the best result it found. For the vast majority of problems coin selection should be done in under 100ms, so it should not matter. But for real time problems, 5 makes for a sane setting. If you're doing non-realtime batches, using something like 30 seconds makes sense so that it can really fully search a complex space</td>
+          </tr>
+          <tr>
+            <td>mandatoryInputConflicts</td>
+            <td>array of (array of strings)</td>
+            <td>This is only needed for doing transaction replacement. If you are not, just use an empty array. Each element in the mandatoryInputConflicts array is a "conflictSet" which is an array of identifiers. Each conflictSet is "at least one of these inputs must be conflicted with". And all conflictSets must be satisfied. This is designed to allow you to create powerful transaction replacements that conflict with other transactions (so you don't need to worry about multiple confirming)
+            </td>
+          </tr>
+          <tr>
+            <td>inputs</td>
+            <td>array of Input's</td>
+            <td>
+              A list of all possible inputs to pick. Each input has three mandatory fields:
+              "identifier", "weight" and "amount". The identifier is a string that uniquely identifies that input. Weight is how much it would cost (in weight) to spend that input. Amount is in satoshis. There is an optional field "confirmations" which says how deeply confirmed the transaction is. This is more or less ignored and you are free to skip it. But the coin selection will use "confirmation" count to break ties (preferring old inputs, under the assumption that it is old becausse it wasn't as useful to spend earlier)
+            </td>
+          </tr>
+          <tr>
+            <td>outputs</td>
+            <td>array of Output's</td>
+            <td>
+              A list of all outputs the transaction can or should have. Each Output has four fields: identifier, weight, amount, requirement. "identifier" is a string that uniquely identifies the output. "weight" says how much weight it would add to the transaction to send to that output. "amount" is the amount needed to be sent. "requirement" is says if the transaction must send to this output or not. There are three options: "M" for Mandatory (basically don't create the transaction unless it has this output). "P" for preferred (try include this output, but it's not essential) or "O" for optional. Which means it'll only include this output it it can improve the coin selection. So for instance in batching sends, you might not have a hard requirement to include of them, which can often drastically improve coin selection. When creating a batch transaction it for instance might make sense to make sends < X hours ago "optional", and if they're older than that "preferred" and finally if it's essential they be sent, make them "mandatory".
+            </td>
+          </tr>
+          </tbody>
+        </table>
+        </div>
+      <p>
+        The result of solving a problem, is a <i>selection</i>. For the sample problem, the selection you should get is:
+      </p>
+      <code>{"inputs":["dl_155"],"outputs":["wl_158"],"changeAmount":0,"optimal":true,"weight":776,"miningFee":68320,"miningSacrifice":10120}</code>
+      <h3>Selection</h3>
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+          <thead>
+          <th scope="col">Field</th>
+          <th scope="col">Type</th>
+          <th scope="col">Description</th>
+          </thead>
+          <tbody>
+          <tr>
+            <td>inputs</td>
+            <td>array of strings</td>
+            <td>This is an array of input identifiers that have been chosen</td>
+          </tr>
+          <tr>
+            <td>outputs</td>
+            <td>array of strings</td>
+            <td>This is an array of output identifiers that have been chosen. Note: this includes both mandatory and the optional ones that have been picked</td>
+          </tr>
+          <tr>
+            <td>changeAmount</td>
+            <td>integer</td>
+            <td>
+              If this is 0, it means do not create change. If it is > 0, it says how much the change output should be for (in satoshis).
+            </td>
+          </tr>
+          <tr>
+            <td>optimal</td>
+            <td>boolean</td>
+            <td>This says if the coin selection was able to find it's optimal selection, or it was timed out and gave it's best approximation it found</td>
+          </tr>
+          <tr>
+            <td>weight</td>
+            <td>integer</td>
+            <td>How much weight the created transaction should have.  This is strictly derived data, and you should never need this field, but you can use for debugging or what not</td>
+          </tr>
+          <tr>
+            <td>miningFee</td>
+            <td>integer</td>
+            <td>How much mining fee the transaction will have. This is strictly derived data, and you should never need this field, but you can use for debugging or what not</td>
+          </tr>
+          <tr>
+            <td>miningSacrifice</td>
+            <td>integer</td>
+            <td>How much fees above what is strictly required (minFeeRate) has been "sacrificed" in order to avoid creating a change output.  This is strictly derived data, and you should never need this field, but you can use for debugging or what not</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Inputs and Outputs</h3>
+      <p>
+        coinsayer's coin selection is flexible enough to work with any bitcoin-like cryptocurrency, so things like weight are not hardcoded. However as it's main use is for bitcoin, here is a guide to how much different input and output types add to a transaction:
+      </p>
+      <h4>bitcoin input weights</h4>
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+          <thead>
+          <tr>
+            <th scope="col">Type</th>
+            <th scope="col">Weight</th>
+            <th scope="col">Description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>P2PKH</td>
+            <td>592</td>
+            <td>Due to ecdsa encoding this can occasionally be few bytes shorter</td>
+          </tr>
+          <tr>
+            <td>P2SH</td>
+            <td>???</td>
+            <td>It will depend on the exact type of script used</td>
+          </tr>
+          <tr>
+            <td>P2SH-P2WPKH</td>
+            <td>368</td>
+            <td>This is the segwit that is wrapped by p2sh</td>
+          </tr>
+          <tr>
+            <td>P2WPKH</td>
+            <td>?</td>
+            <td>TODO: ???</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <h4>bitcoin output weights</h4>
+      <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+          <thead>
+          <tr>
+            <th scope="col">Type</th>
+            <th scope="col">Weight</th>
+            <th scope="col">Description</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>P2SH</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>P2PK</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>P2WPKH</td>
+            <td></td>
+            <td></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </block>
 </extends>

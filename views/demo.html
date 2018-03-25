@@ -1,21 +1,22 @@
 <extends src='layout.html'>
   <block name='content'>
-    <h2>Quick Demo</h2>
-    <p>
-      1. Grab a <a href="/problem.json">sample problem</a> and save on your computer.
-    </p>
-    <pre>
-      curl https://www.coinsayer.com/problem.json &gt; problem.json
-    </pre>
-    <p>
-      2. Send the problem to coinsayer's api.
-    </p>
-    <pre>
-      curl -H "Content-Type: application/json" --data @problem.json http://freeapi.coinsayer.com/v1/solve-problem
-    </pre>
-    <p>
-      3. Analyze the output, use it to create the perfect bitcoin transaction!
-    </p>
-
+    <div class="section">
+      <h2>Quick Demo</h2>
+      <p>
+        1. Grab a <a href="/problem.json">sample problem</a> and save on your computer.
+      </p>
+      <code>
+        curl https://www.coinsayer.com/problem.json &gt; problem.json
+      </code>
+      <p>
+        2. Send the problem to coinsayer's api.
+      </p>
+      <code>
+        curl -H "Content-Type: application/json" --data @problem.json http://freeapi.coinsayer.com/v1/solve-problem
+      </code>
+      <p>
+        3. Analyze the output, use it to create the perfect bitcoin transaction!
+      </p>
+    </div>
   </block>
 </extends>
