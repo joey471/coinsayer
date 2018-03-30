@@ -2,12 +2,21 @@
 //@import 'node_modules/bootstrap/scss/bootstrap.scss';
 
 // Variable overrides
+
 $font-family-base: 'Circular', sans-serif;
 $navbar-padding-x: 3rem;
 $navbar-brand-font-size: 1.6rem;
 $headings-margin-bottom: 1.5rem;
 
-// Bootstrap and its default variables
+// Buttons
+// Shared variables that are reassigned to `$input-` and `$btn-` specific variables.
+$input-btn-padding-y:         .4rem !default;
+$input-btn-padding-x:         .9rem !default;
+$input-btn-padding-y-lg:      1rem !default;
+$input-btn-padding-x-lg:      2rem !default;
+
+$headings-font-family: 'Circular Bold';
+  // Bootstrap and its default variables
 @import "node_modules/bootstrap/scss/bootstrap";
 
 
