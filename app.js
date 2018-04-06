@@ -12,7 +12,7 @@ module.exports = {
     rules: [{ test: /\.scss/, use: [{ loader: 'sass-loader' }] }]
   },
   reshape: htmlStandards({
-    locals: (ctx) => { return { pageId: pageId(ctx), menu: [{ name: 'home', url: '/', active: 'index' }, { name: 'demo', active: 'demo' },{ name: 'api', active: 'api' }, { name: 'pricing', active: 'pricing' }, { name: 'contact', active: 'contact' }]   } },
+    locals: (ctx) => { return { pageId: pageId(ctx), menu: [{ name: 'home', url: '/', active: 'index' }, { name: 'demo', active: 'demo' },{ name: 'api', active: 'api' }, { name: 'contact', active: 'contact' }]   } },
     minify: env === 'production'
   }),
   postcss: cssStandards({
